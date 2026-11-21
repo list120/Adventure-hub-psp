@@ -1,0 +1,84 @@
+name: Build Adventure.iso
+
+# Compiles the game in the cloud and hands you Adventure.iso as a download.
+# No PC, no Termux, no SDK install needed.
+#
+# How to run it from the phone browser:
+#   GitHub repo  ->  "Actions" tab  ->  "Build Adventure.iso"  ->  Run workflow
+# (It also runs automatically whenever you push a change.)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build the PSP ISO
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Get the source
+        uses: actions/checkout@v4
+
+      - name: Compile with the official PSP SDK container
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/source" \
+            --workdir /source \
+            pspdev/pspdev:latest \
+            sh -lc '
+              set -e
+              export PSPDEV=/usr/local/pspdev
+              export PSPSDK="$PSPDEV/psp/sdk"
+              export PATH="$PSPDEV/bin:$PSPSDK/bin:$PATH"
+              psp-config --version
+              make clean || true
+              make -j"$(nproc)"
+            '
+
+      - name: Show the build output
+        run: ls -lh EBOOT.PBP PARAM.SFO adventure.elf 2>/dev/null || ls -lh
+
+      - name: Install an ISO packing tool
+        run: |
+          set -e
+          command -v genisoimage || command -v mkisofs || command -v xorriso || {
+            sudo apt-get update
+            sudo apt-get install -y genisoimage
+          }
+
+      - name: Pack the .iso
+        run: SKIP_MAKE=1 ./build_iso.sh
+
+      - name: Verify the ISO
+        run: |
+          set -e
+          test -s Adventure.iso
+          ls -lh Adventure.iso
+
+      - name: Upload the finished ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: Adventure-iso
+          path: Adventure.iso
+          if-no-files-found: error
+          retention-days: 90
+
+      # Also publish it as a Release file, which is much easier to tap on a
+      # phone than digging into the workflow run's artifact list.
+      - name: Publish to Releases (easy phone download)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Lost Rune Adventure - latest build
+          body: |
+            Adventure.iso built automatically from the source.
+            Download it below and copy it to /storage/emulated/0/Ppsspp rom
+            then launch it in PPSSPP.
+          files: Adventure.iso
+          token: ${{ secrets.GITHUB_TOKEN }}
