@@ -1,0 +1,87 @@
+HOW TO GET YOUR .iso  (phone only - no PC, no Termux)
+=====================================================
+
+You CANNOT build the ISO on the phone itself. A PSP game has to be compiled
+into a MIPS program (EBOOT.BIN) with the PSP SDK, and packing the ISO needs a
+tool called genisoimage/mkisofs. None of that exists on Android. That is why
+this project includes a GitHub "workflow" file that does the build for you in
+the cloud, for free.
+
+The build file lives here:
+
+    .github/workflows/build-iso.yml
+
+------------------------------------------------------------
+THE SHORT VERSION
+------------------------------------------------------------
+Upload this whole folder to a GitHub repository -> GitHub builds the ISO ->
+you download "Adventure.iso" -> move it to /storage/emulated/0/Ppsspp rom
+
+------------------------------------------------------------
+STEP BY STEP (all from the phone browser)
+------------------------------------------------------------
+1. Make a free account at github.com (skip if you have one).
+
+2. Create a new repository. Private is fine. Name it anything, e.g.
+   "lost-rune-adventure". Do NOT add a README (you already have one).
+
+3. Upload this folder into the repository:
+     - Open the repo -> "Add file" -> "Upload files".
+     - Select the CONTENTS of the "Lost Rune Adventure" folder
+       (README.md, Makefile, build_iso.sh, Dockerfile, src, .github).
+     - Tap "Commit changes".
+
+   IMPORTANT: the ".github" folder starts with a dot and some phones hide it
+   in the file picker. If it does not get uploaded, make it by hand:
+     - Repo -> "Add file" -> "Create new file".
+     - In the filename box type exactly:
+         .github/workflows/build-iso.yml
+       (typing each "/" creates the folders for you)
+     - Paste the contents of build-iso.yml into the big text box.
+     - Commit.
+
+   If this file is missing, nothing gets built. So double-check that
+   ".github/workflows/build-iso.yml" exists in the repo afterwards.
+
+4. Go to the repo's "Actions" tab.
+     - You will see "Build Adventure.iso".
+     - It starts by itself after the upload. If not, tap it and press
+       "Run workflow".
+
+5. Wait about 2 to 4 minutes. Refresh until you see a green check mark.
+
+6. Get the ISO. You have two choices, both fine:
+     A) EASIEST: repo home page -> right side "Releases" ->
+        "Lost Rune Adventure - latest build" -> tap "Adventure.iso".
+     B) Actions -> tap the green run -> scroll to "Artifacts" ->
+        download "Adventure-iso" (a .zip) -> unzip it.
+
+7. Move "Adventure.iso" into the PSP rom folder:
+     /storage/emulated/0/Ppsspp rom
+   Use your phone's Files app (long-press -> Move), or Android's "Download"
+   notification -> open, then move.
+
+8. Open PPSSPP -> you will see "ADVENTURE" -> tap it.
+
+That is it. Every time you change the source and push, GitHub rebuilds the
+ISO for you automatically.
+
+------------------------------------------------------------
+IF SOMETHING GOES WRONG
+------------------------------------------------------------
+- "No workflow runs": the .github/workflows/build-iso.yml file is missing or
+  was renamed. Re-create it as in step 3.
+- A red X on the run: open it, tap the failed step, read the last red lines.
+  Most common cause is a typo when pasting build-iso.yml.
+- PPSSPP does not list it: make sure the extension is exactly ".iso" and that
+  it sits directly in /storage/emulated/0/Ppsspp rom (not inside a subfolder).
+
+------------------------------------------------------------
+NO GITHUB?  OTHER FREE OPTIONS
+------------------------------------------------------------
+- GitHub Codespaces / Replit / Google Cloud Shell: these are free Linux
+  terminals in the browser. Open one, upload this folder, then run:
+        make && ./build_iso.sh
+  and download the "Adventure.iso" it produces.
+
+You do NOT need Termux, root, or an unlocked bootloader for any of this.
